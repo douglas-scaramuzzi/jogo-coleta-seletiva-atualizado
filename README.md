@@ -54,5 +54,5 @@ Esta evolução do projeto focou no desenvolvimento de funcionalidades que combi
 ---
 
 ## 📂 Links do Projeto
-* **Link de Produção (Jogar online):** [https://douglas-scaramuzzi.github.io/coleta-seletiva-atualizado/](https://douglas-scaramuzzi.github.io/jogo-coleta-seletiva-atualizado/)
-* **Link do Repositório (Código-fonte):** [https://github.com/douglas-scaramuzzi/coleta-seletiva-atualizado](https://github.com/douglas-scaramuzzi/jogo-coleta-seletiva-atualizado.git)
+* **Link de Produção (Jogar online):**  (https://douglas-scaramuzzi.github.io/jogo-coleta-seletiva-atualizado/)
+* **Link do Repositório (Código-fonte):**  (https://github.com/douglas-scaramuzzi/jogo-coleta-seletiva-atualizado/blob/main/index.html)
