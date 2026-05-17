@@ -12,7 +12,7 @@
       MELHORIAS IMPLEMENTADAS NESTA ETAPA II:
       1. SISTEMA DE TRÊS NÍVEIS COM PROGRESSÃO PEDAGÓGICA.
       2. SISTEMA DE ACESSIBILIDADE UNIVERSAL (Teclado, Alto Contraste, Voz).
-      3. SUPORTE TOTAL A SMARTPHONES (Touch Events Nativos + Prevenção de Scroll).
+      3. SUPORTE TOTAL A SMARTPHONES (Touch Events Nativos + Prevenção de Scroll + Grid Adaptativa).
       4. BANCO DE DADOS LOCAL (Leaderboard relacional simulado via localStorage/JSON).
       5. ALGORITMO DE EMBARALHAMENTO DINÂMICO (Fisher-Yates).
     -->
@@ -101,7 +101,7 @@
 <body class="bg-pattern-light flex flex-col items-center justify-between min-h-screen p-2 md:p-4 text-gray-800">
 
     <!-- BARRA SUPERIOR DE CONTROLE E ACESSIBILIDADE -->
-    <header class="w-full max-w-4xl bg-white/90 backdrop-blur-sm shadow-md rounded-2xl p-3 md:p-4 mb-4 flex flex-wrap gap-3 justify-between items-center z-10">
+    <header class="w-full max-w-4xl bg-white/90 backdrop-blur-sm shadow-md rounded-2xl p-3 md:p-4 mb-4 flex flex-col sm:flex-row gap-3 justify-between items-center z-10">
         <div class="flex items-center gap-2">
             <span class="text-2xl">🌱</span>
             <div>
@@ -111,7 +111,7 @@
         </div>
 
         <!-- PAINEL DE ACESSIBILIDADE -->
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap justify-center items-center gap-2">
             <!-- Modo Alto Contraste -->
             <button id="contrast-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Alternar Alto Contraste para baixa visão ou daltônicos" aria-label="Modo Alto Contraste">
                 <span>👁️</span> <span class="hidden sm:inline">Alto Contraste</span>
@@ -159,28 +159,28 @@
     <!-- TELA PRINCIPAL DO JOGO -->
     <main id="game-container" class="w-full max-w-4xl flex flex-col flex-grow items-center justify-center hidden my-2">
         
-        <!-- PAINEL DE STATUS E CRONOGRAMA DE NÍVEIS (RESPONSIVO COM TIMER) -->
+        <!-- PAINEL DE STATUS E CRONOGRAMA DE NÍVEIS (RESPONSIVO COM TIMER E GRID CORRIGIDO PARA MOBILE) -->
         <div class="w-full bg-white/90 backdrop-blur-sm p-3 md:p-4 rounded-2xl shadow-md mb-4 md:mb-6 border border-gray-200">
-            <div class="grid grid-cols-4 gap-2 md:gap-4 text-center items-center">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-2 md:gap-4 text-center items-center">
                 <!-- Jogador Atual -->
-                <div class="border-r border-gray-200">
+                <div class="border-b md:border-b-0 border-r border-gray-200 pb-2 md:pb-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Jogador</span>
                     <span id="player-display-name" class="text-sm md:text-base font-extrabold text-blue-700 truncate block">Douglas</span>
                 </div>
                 <!-- Nível Atual -->
-                <div class="border-r border-gray-200">
+                <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Fase</span>
                     <span id="level-title" class="text-xs md:text-sm font-bold text-green-700">Nível 1</span>
                 </div>
                 <!-- Pontuação -->
-                <div class="border-r border-gray-200">
+                <div class="border-r border-gray-200 pt-2 md:pt-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Pontos</span>
                     <div class="flex items-center justify-center gap-1">
                         <span id="score" class="text-xl md:text-2xl font-extrabold text-green-600">0</span>
                     </div>
                 </div>
                 <!-- Tempo Decorrido -->
-                <div>
+                <div class="pt-2 md:pt-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Tempo</span>
                     <div class="flex items-center justify-center gap-1">
                         <span id="game-timer" class="text-xl md:text-2xl font-extrabold text-red-500">0.0</span>
@@ -229,8 +229,8 @@
             ⌨️ <strong>Atalhos no PC:</strong> Pressione as teclas numéricas de <strong>1 a 6</strong> no teclado para descartar rapidamente!
         </div>
 
-        <!-- RECIPIENTES DE COLETA (LIXEIRAS) -->
-        <div id="bins-container" class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 md:gap-4 w-full">
+        <!-- RECIPIENTES DE COLETA (LIXEIRAS) - Ajustado para renderizar em 2 colunas no celular -->
+        <div id="bins-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 w-full">
             <!-- Gerado dinamicamente via JS com base no nível -->
         </div>
     </main>
@@ -500,8 +500,12 @@
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'pt-BR';
             if (ptVoice) utterance.voice = ptVoice;
-            utterance.rate = 1.50; 
+            
+            // OTIMIZAÇÃO DE DISPOSITIVO: Motores de voz de celular aceleram mais a fala que no PC.
+            const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            utterance.rate = isMobileDevice ? 1.15 : 1.45; // Suave no celular, rápido no PC
             utterance.pitch = 1.05; 
+            
             window.speechSynthesis.speak(utterance);
         }
 
@@ -583,7 +587,7 @@
             activeBinsKeys.forEach((key, index) => {
                 const binData = ALL_BINS[key];
                 const button = document.createElement('button');
-                // Ajustado para responsividade extrema em celulares (h-28 em mobile, h-40 em PC)
+                // AJUSTE MOBILE: Garante que as lixeiras vão empilhar de 2 em 2 com altura ideal na tela do celular
                 button.className = `bin p-2 md:p-4 rounded-xl shadow-lg flex flex-col items-center justify-center md:justify-between h-28 md:h-40 border-b-4 md:border-b-8 transition-all active:scale-95 text-white ${binData.class}`;
                 button.dataset.type = binData.type;
                 button.dataset.key = binData.key;
@@ -699,7 +703,7 @@
 
         trashItemEl.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
-            e.preventDefault(); // Impede o scroll da tela inteira
+            e.preventDefault(); // Impede o scroll da tela inteira (ESSENCIAL PARA MOBILE)
             
             currentX = e.touches[0].clientX - initialX;
             currentY = e.touches[0].clientY - initialY;
