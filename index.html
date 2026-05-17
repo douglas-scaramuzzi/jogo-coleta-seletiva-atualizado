@@ -12,10 +12,8 @@
       MELHORIAS IMPLEMENTADAS NESTA ETAPA II:
       1. SISTEMA DE TRÊS NÍVEIS COM PROGRESSÃO PEDAGÓGICA.
       2. SISTEMA DE ACESSIBILIDADE UNIVERSAL (Teclado, Alto Contraste, Voz).
-      3. SUPORTE TOTAL A SMARTPHONES (Touch Events Nativos + Prevenção de Scroll).
-      4. BANCO DE DADOS NA NUVEM (Leaderboard Global em Tempo Real Cloud NoSQL).
-         - Sincronização em tempo real entre todos os dispositivos.
-         - Ordenação multicritério em memória JS (Pontuação DESC, Tempo ASC).
+      3. SUPORTE TOTAL A SMARTPHONES (Touch Events Nativos + Prevenção de Scroll + Grid Adaptativa).
+      4. BANCO DE DADOS LOCAL (Leaderboard relacional simulado via localStorage/JSON).
       5. ALGORITMO DE EMBARALHAMENTO DINÂMICO (Fisher-Yates).
     -->
 
@@ -27,14 +25,17 @@
         body {
             font-family: 'Poppins', sans-serif;
             transition: background-color 0.3s ease, color 0.3s ease;
+            /* Previne comportamentos de atualização ao arrastar para baixo no mobile */
             overscroll-behavior-y: contain; 
         }
 
+        /* Fundo padrão amigo do ambiente */
         .bg-pattern-light {
             background-color: #F0FDF4;
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23A7F3D0' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
         }
 
+        /* Fundo simplificado para Alto Contraste */
         .bg-pattern-contrast {
             background-color: #121212 !important;
             background-image: none !important;
@@ -47,6 +48,7 @@
             transform: scale(1.08);
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
         }
+        /* Destaque para item selecionado via teclado ou clique */
         .bin.selected-target {
             outline: 5px solid #EAB308;
             outline-offset: 4px;
@@ -57,6 +59,7 @@
             cursor: grab;
             transition: transform 0.1s ease, opacity 0.2s ease;
             text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+            /* CRUCIAL PARA MOBILE: Impede que a tela do celular role ao tentar arrastar a lixeira */
             touch-action: none; 
             z-index: 50;
         }
@@ -107,21 +110,20 @@
             </div>
         </div>
 
-        <!-- PAINEL DE ACESSIBILIDADE E STATUS DO CLOUD -->
+        <!-- PAINEL DE ACESSIBILIDADE -->
         <div class="flex flex-wrap justify-center items-center gap-2">
-            <div id="cloud-status" class="flex items-center gap-1 bg-blue-50 text-blue-800 text-xs font-bold py-2 px-3 rounded-lg border border-blue-200">
-                <span class="animate-pulse">☁️</span> <span class="hidden sm:inline">Nuvem Sincronizando...</span>
-            </div>
-
-            <button id="contrast-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Alternar Alto Contraste para baixa visão ou daltônicos">
+            <!-- Modo Alto Contraste -->
+            <button id="contrast-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Alternar Alto Contraste para baixa visão ou daltônicos" aria-label="Modo Alto Contraste">
                 <span>👁️</span> <span class="hidden sm:inline">Alto Contraste</span>
             </button>
 
-            <button id="speech-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors">
+            <!-- Narração de Voz -->
+            <button id="speech-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Ativar/Desativar leitura de tela e audiodescrição por voz" aria-label="Narração de Voz">
                 <span id="speech-icon">🔊</span> <span>Voz: <span id="speech-status">ON</span></span>
             </button>
 
-            <button id="sound-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors">
+            <!-- Controle de Som -->
+            <button id="sound-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Mudar som do jogo" aria-label="Efeitos Sonoros">
                 <span id="sound-icon">🎵</span> <span>Efeitos: <span id="sound-status">ON</span></span>
             </button>
         </div>
@@ -132,8 +134,9 @@
         <div class="bg-white rounded-2xl shadow-2xl text-center max-w-lg w-full p-6 md:p-8 border-t-8 border-green-500 transform transition-all scale-100">
             <div class="text-5xl md:text-6xl mb-4">🌎</div>
             <h2 class="text-2xl md:text-3xl font-extrabold text-green-700 mb-1">Jogo de Coleta Seletiva</h2>
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Edição II - Cloud Leaderboard</p>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Edição II</p>
             
+            <!-- CAMPO DE ENTRADA DO NOME DO JOGADOR -->
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-left">
                 <label for="player-name-input" class="block text-sm font-bold text-gray-700 mb-1">Digite seu primeiro nome:</label>
                 <input type="text" id="player-name-input" maxlength="12" placeholder="Ex: Douglas" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 font-semibold text-gray-800">
@@ -141,12 +144,13 @@
             </div>
 
             <div class="bg-green-50 rounded-xl p-4 text-left text-xs md:text-sm text-green-900 space-y-1 mb-6 border border-green-200">
-                <p class="font-bold">✨ Competição Global Ativada!</p>
-                <p>☁️ <strong>Placar na Nuvem:</strong> Seus recordes são salvos e compartilhados com todos os jogadores!</p>
+                <p class="font-bold">✨ Como jogar:</p>
+                <p>👆 <strong>No Celular:</strong> Arraste o resíduo com o dedo ou apenas toque nele e depois na lixeira!</p>
                 <p>⏱️ <strong>Tempo Real:</strong> Seja rápido! Em caso de empate na pontuação, o menor tempo vence.</p>
+                <p>⌨️ <strong>No PC:</strong> Pode usar as teclas numéricas de <strong>1 a 6</strong>.</p>
             </div>
 
-            <button id="start-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl text-lg md:text-xl shadow-lg transition-transform transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="start-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl text-lg md:text-xl shadow-lg transition-transform transform hover:scale-105 active:scale-95">
                 Iniciar Jogo
             </button>
         </div>
@@ -155,23 +159,27 @@
     <!-- TELA PRINCIPAL DO JOGO -->
     <main id="game-container" class="w-full max-w-4xl flex flex-col flex-grow items-center justify-center hidden my-2">
         
-        <!-- PAINEL DE STATUS -->
+        <!-- PAINEL DE STATUS E CRONOGRAMA DE NÍVEIS (RESPONSIVO COM TIMER E GRID CORRIGIDO PARA MOBILE) -->
         <div class="w-full bg-white/90 backdrop-blur-sm p-3 md:p-4 rounded-2xl shadow-md mb-4 md:mb-6 border border-gray-200">
             <div class="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-2 md:gap-4 text-center items-center">
+                <!-- Jogador Atual -->
                 <div class="border-b md:border-b-0 border-r border-gray-200 pb-2 md:pb-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Jogador</span>
                     <span id="player-display-name" class="text-sm md:text-base font-extrabold text-blue-700 truncate block">Douglas</span>
                 </div>
+                <!-- Nível Atual -->
                 <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Fase</span>
                     <span id="level-title" class="text-xs md:text-sm font-bold text-green-700">Nível 1</span>
                 </div>
+                <!-- Pontuação -->
                 <div class="border-r border-gray-200 pt-2 md:pt-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Pontos</span>
                     <div class="flex items-center justify-center gap-1">
                         <span id="score" class="text-xl md:text-2xl font-extrabold text-green-600">0</span>
                     </div>
                 </div>
+                <!-- Tempo Decorrido -->
                 <div class="pt-2 md:pt-0">
                     <span class="text-[10px] md:text-xs uppercase font-semibold text-gray-500 block">Tempo</span>
                     <div class="flex items-center justify-center gap-1">
@@ -181,6 +189,7 @@
                 </div>
             </div>
 
+            <!-- Barra de Progresso Visual do Jogo -->
             <div class="mt-3">
                 <div class="flex justify-between text-xs text-gray-500 mb-1">
                     <span>Progresso</span>
@@ -194,10 +203,13 @@
 
         <!-- ÁREA CENTRAL: ITEM DE DESCARTE -->
         <div class="w-full bg-white/90 backdrop-blur-sm border-2 border-dashed border-green-300 rounded-3xl p-6 md:p-8 mb-6 text-center relative shadow-sm min-h-[12rem] flex flex-col justify-center items-center">
+            
             <div id="instruction-tap" class="text-[10px] md:text-xs font-semibold text-green-600 bg-green-50 rounded-full py-1 px-3 mb-2">
                 💡 Arraste com o dedo ou TOQUE no resíduo para selecionar!
             </div>
+
             <div id="trash-area" class="flex flex-col items-center justify-center relative">
+                <!-- Elemento do resíduo que será arrastado ou clicado -->
                 <button id="trash-item" draggable="true" class="trash-item text-7xl md:text-8xl focus:outline-none focus:ring-4 focus:ring-green-400 rounded-xl p-2 active:scale-110" aria-label="Item reciclável">
                     🌱
                 </button>
@@ -205,14 +217,21 @@
                     Carregando...
                 </div>
             </div>
+
+            <!-- Caixa de Feedback Positivo/Negativo Flutuante -->
             <div id="feedback" class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-base md:text-xl font-extrabold whitespace-nowrap bg-white py-2 px-6 rounded-full shadow-lg border border-gray-200 scale-0 transition-transform duration-300 z-10">
                 Correto!
             </div>
         </div>
 
-        <!-- RECIPIENTES DE COLETA (LIXEIRAS) -->
+        <!-- TABELA DE ATALHOS / LEGENDA DE ACESSIBILIDADE TECLADO -->
+        <div id="keyboard-legend" class="text-[10px] md:text-xs text-gray-500 bg-gray-100 p-2 rounded-lg mb-4 text-center hidden sm:block w-full">
+            ⌨️ <strong>Atalhos no PC:</strong> Pressione as teclas numéricas de <strong>1 a 6</strong> no teclado para descartar rapidamente!
+        </div>
+
+        <!-- RECIPIENTES DE COLETA (LIXEIRAS) - Ajustado para renderizar em 2 colunas no celular -->
         <div id="bins-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 w-full">
-            <!-- Gerado dinamicamente -->
+            <!-- Gerado dinamicamente via JS com base no nível -->
         </div>
     </main>
 
@@ -228,13 +247,14 @@
         </div>
     </div>
 
-    <!-- MODAL DE FINALIZAÇÃO / PLACAR GLOBAL CLOUD -->
+    <!-- MODAL DE FINALIZAÇÃO / PLACAR DE LÍDERES (LEADERBOARD) -->
     <div id="end-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl shadow-2xl text-center max-w-lg w-full p-4 md:p-6 border-t-8 border-yellow-500 transform transition-all scale-95 overflow-y-auto max-h-[95vh]" id="end-modal-content">
             <div class="text-4xl md:text-5xl mb-2">🏆</div>
             <h2 class="text-xl md:text-2xl font-extrabold text-yellow-600 mb-1">Resultado Final!</h2>
-            <p class="text-gray-500 text-xs mb-3">Seu recorde foi enviado para a nuvem!</p>
+            <p class="text-gray-500 text-xs mb-3">Desafio de Coleta Seletiva Concluído com Sucesso</p>
             
+            <!-- RESULTADO DA PARTIDA DO JOGADOR -->
             <div class="grid grid-cols-2 gap-3 bg-yellow-50 rounded-xl p-3 border border-yellow-200 mb-4">
                 <div>
                     <span class="text-[10px] uppercase font-semibold text-gray-500 block">Sua Pontuação</span>
@@ -248,14 +268,15 @@
                 </div>
             </div>
 
-            <!-- PAINEL DO BANCO DE DADOS GLOBAL -->
-            <div class="bg-gray-50 rounded-xl p-3 md:p-4 border border-gray-200 mb-5 text-left relative">
-                <h4 class="text-[10px] md:text-xs font-extrabold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    ☁️ Placar Global em Tempo Real
-                </h4>
+            <!-- PAINEL DO BANCO DE DADOS LOCAL: TOP 5 LÍDERES -->
+            <div class="bg-gray-50 rounded-xl p-3 md:p-4 border border-gray-200 mb-5 text-left">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-[10px] md:text-xs font-extrabold text-gray-700 uppercase tracking-wider">📊 Placar de Líderes Local (Top 5)</h4>
+                    <button id="clear-leaderboard-btn" class="text-[10px] font-bold text-red-500 hover:underline">Limpar Placar</button>
+                </div>
                 <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
                     <table class="w-full text-[10px] md:text-xs text-left">
-                        <thead class="bg-blue-50 uppercase text-blue-800 border-b border-blue-200">
+                        <thead class="bg-gray-100 uppercase text-gray-600 border-b border-gray-200">
                             <tr>
                                 <th class="px-2 py-2 text-center">Pos</th>
                                 <th class="px-2 py-2">Jogador</th>
@@ -264,7 +285,7 @@
                             </tr>
                         </thead>
                         <tbody id="leaderboard-body">
-                            <tr><td colspan="4" class="px-3 py-4 text-center text-gray-400">Carregando dados da nuvem...</td></tr>
+                            <!-- Inserido dinamicamente via JS -->
                         </tbody>
                     </table>
                 </div>
@@ -276,144 +297,21 @@
         </div>
     </div>
 
-    <!-- MÓDULO JS PRINCIPAL - Integração Firebase e Lógica do Jogo -->
-    <script type="module">
-        // Importações da API do Firebase Firestore para o Banco de Dados Na Nuvem
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- MODAL CUSTOMIZADO PARA CONFIRMAÇÃO DE RESET DO BANCO -->
+    <div id="reset-confirm-modal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 text-center max-w-xs w-full border border-red-500">
+            <div class="text-3xl mb-2">🗑️</div>
+            <h5 class="text-lg font-bold text-red-600 mb-1">Limpar Placar?</h5>
+            <p class="text-xs text-gray-500 mb-4">Esta ação irá apagar todos os registros do banco de dados local. Confirmar?</p>
+            <div class="flex gap-2">
+                <button id="cancel-reset-btn" class="w-1/2 bg-gray-200 text-gray-800 text-xs font-bold py-2 rounded-lg">Não</button>
+                <button id="confirm-reset-btn" class="w-1/2 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Sim, Limpar</button>
+            </div>
+        </div>
+    </div>
 
-        let db, auth, currentUser, appId;
-        let globalLeaderboard = []; // Variável para armazenar os registros da nuvem localmente
-
-        // ==========================================
-        // INICIALIZAÇÃO DO BANCO DE DADOS CLOUD
-        // ==========================================
-        try {
-            const firebaseConfig = JSON.parse(window.__firebase_config || '{}');
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
-
-            // Autenticação Silenciosa para permissão de escrita no Banco de Dados
-            const initAuth = async () => {
-                try {
-                    if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-                        await signInWithCustomToken(auth, window.__initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch(e) { console.error("Falha na Autenticação DB:", e); }
-            };
-            
-            initAuth();
-
-            // Monitora a conexão e carrega os dados
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    document.getElementById('cloud-status').innerHTML = '✅ <span class="hidden sm:inline">Nuvem Conectada</span>';
-                    document.getElementById('cloud-status').className = 'flex items-center gap-1 bg-green-50 text-green-800 text-xs font-bold py-2 px-3 rounded-lg border border-green-200';
-                    listenToCloudLeaderboard();
-                }
-            });
-        } catch (error) {
-            console.error("Erro na inicialização do Firebase:", error);
-            document.getElementById('cloud-status').innerHTML = '❌ <span class="hidden sm:inline">Erro na Nuvem</span>';
-        }
-
-        // ==========================================
-        // LÓGICA DO BANCO DE DADOS (READ / WRITE)
-        // ==========================================
-        
-        // Listener em Tempo Real (Ouve mudanças no DB na Nuvem instantaneamente)
-        function listenToCloudLeaderboard() {
-            if (!currentUser || !db) return;
-            
-            // Regra 1: Caminho Estrito do Banco
-            const leaderboardRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-            
-            onSnapshot(leaderboardRef, (snapshot) => {
-                let allScores = [];
-                snapshot.forEach((doc) => {
-                    allScores.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Regra 2: Ordenação Multicritério executada no Frontend (Em memória)
-                // Ordenação Primária: Maior Pontuação / Ordenação Secundária: Menor Tempo
-                allScores.sort((a, b) => {
-                    if (b.score !== a.score) return b.score - a.score; 
-                    return a.time - b.time; 
-                });
-                
-                globalLeaderboard = allScores;
-                
-                // Se a tela final estiver aberta, atualiza a tabela dinamicamente com novos recordes de outros jogadores!
-                const endModal = document.getElementById('end-modal');
-                if (!endModal.classList.contains('hidden')) {
-                    renderLeaderboardTable();
-                }
-            }, (error) => {
-                console.error("Erro ao sincronizar com a nuvem:", error);
-            });
-        }
-
-        // Função Assíncrona de Inserção de Dados
-        async function saveScoreToCloud(name, finalScore, elapsedTime) {
-            if (!currentUser || !db) return;
-            try {
-                const leaderboardRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-                await addDoc(leaderboardRef, {
-                    name: name,
-                    score: finalScore,
-                    time: elapsedTime,
-                    timestamp: Date.now(),
-                    userId: currentUser.uid // Identificador único do dispositivo para destacar na UI
-                });
-            } catch(e) {
-                console.error("Erro ao gravar recorde na nuvem:", e);
-            }
-        }
-
-        function renderLeaderboardTable() {
-            const leaderboardBody = document.getElementById('leaderboard-body');
-            leaderboardBody.innerHTML = '';
-            
-            // Exibe apenas o Top 5 Global
-            const topFive = globalLeaderboard.slice(0, 5);
-
-            if (topFive.length === 0) {
-                leaderboardBody.innerHTML = `<tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 font-medium">Seja o primeiro a estabelecer um recorde!</td></tr>`;
-                return;
-            }
-
-            topFive.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                
-                // Destaca de Verde TODAS as pontuações que o próprio usuário da máquina fez
-                const isCurrentUser = (currentUser && row.userId === currentUser.uid);
-                const bgClass = isCurrentUser ? 'bg-green-100 font-extrabold text-green-900 border-l-4 border-green-600' : 'hover:bg-gray-50 text-gray-700';
-                
-                let positionBadge = `${index + 1}º`;
-                if (index === 0) positionBadge = '🥇';
-                if (index === 1) positionBadge = '🥈';
-                if (index === 2) positionBadge = '🥉';
-
-                tr.className = `${bgClass} border-b border-gray-100 transition-colors`;
-                tr.innerHTML = `
-                    <td class="px-2 py-2 text-center font-bold text-gray-500">${positionBadge}</td>
-                    <td class="px-2 py-2 truncate max-w-[120px]">${row.name}</td>
-                    <td class="px-2 py-2 text-center text-green-600 font-extrabold">${row.score}</td>
-                    <td class="px-2 py-2 text-center text-red-500 font-medium">${row.time.toFixed(1)}s</td>
-                `;
-                leaderboardBody.appendChild(tr);
-            });
-        }
-
-        // ==========================================
-        // DADOS E REGRAS DO JOGO
-        // ==========================================
+    <script>
+        // DEFINIÇÃO DETALHADA DE TODAS AS LIXEIRAS
         const ALL_BINS = {
             papel: { type: 'papel', color: 'blue-500', name: 'Papel', emoji: '📰', key: '1', class: 'bg-blue-600 border-blue-700' },
             plastico: { type: 'plastico', color: 'red-500', name: 'Plástico', emoji: '🧴', key: '2', class: 'bg-red-600 border-red-700' },
@@ -423,57 +321,124 @@
             eletronico: { type: 'eletronico', color: 'orange-500', name: 'E-Lixo', emoji: '🔌', key: '6', class: 'bg-orange-500 border-orange-600' }
         };
 
+        // DEFINIÇÃO DOS TRÊS NÍVEIS PEDAGÓGICOS PROGRESSIVOS
         const LEVELS = [
             {
-                number: 1, name: "Nível 1 - Reciclagem Básica 🌱", bins: ['papel', 'plastico', 'organico'],
+                number: 1,
+                name: "Nível 1 - Reciclagem Básica 🌱",
+                bins: ['papel', 'plastico', 'organico'],
                 items: [
-                    { emoji: '📰', name: 'Folha de Caderno', type: 'papel' }, { emoji: '📦', name: 'Caixa de Papelão', type: 'papel' },
-                    { emoji: '🗞️', name: 'Jornal Velho', type: 'papel' }, { emoji: '✉️', name: 'Envelope de Papel', type: 'papel' },
-                    { emoji: '🧴', name: 'Garrafa Plástica', type: 'plastico' }, { emoji: '🛍️', name: 'Sacola Plástica', type: 'plastico' },
-                    { emoji: '🥤', name: 'Copo Descartável', type: 'plastico' }, { emoji: '🧸', name: 'Brinquedo Quebrado', type: 'plastico' },
-                    { emoji: '🍌', name: 'Casca de Banana', type: 'organico' }, { emoji: '🍎', name: 'Resto de Maçã', type: 'organico' },
-                    { emoji: '🍉', name: 'Casca de Melancia', type: 'organico' }, { emoji: '🥚', name: 'Casca de Ovo', type: 'organico' }
+                    { emoji: '📰', name: 'Folha de Caderno', type: 'papel' },
+                    { emoji: '📦', name: 'Caixa de Papelão', type: 'papel' },
+                    { emoji: '🗞️', name: 'Jornal Velho', type: 'papel' },
+                    { emoji: '✉️', name: 'Envelope de Papel', type: 'papel' },
+                    { emoji: '🧴', name: 'Garrafa Plástica', type: 'plastico' },
+                    { emoji: '🛍️', name: 'Sacola Plástica', type: 'plastico' },
+                    { emoji: '🥤', name: 'Copo Descartável', type: 'plastico' },
+                    { emoji: '🧸', name: 'Brinquedo Quebrado', type: 'plastico' },
+                    { emoji: '🍌', name: 'Casca de Banana', type: 'organico' },
+                    { emoji: '🍎', name: 'Resto de Maçã', type: 'organico' },
+                    { emoji: '🍉', name: 'Casca de Melancia', type: 'organico' },
+                    { emoji: '🥚', name: 'Casca de Ovo', type: 'organico' }
                 ]
             },
             {
-                number: 2, name: "Nível 2 - Coleta Completa ♻️", bins: ['papel', 'plastico', 'metal', 'vidro', 'organico'],
+                number: 2,
+                name: "Nível 2 - Coleta Completa ♻️",
+                bins: ['papel', 'plastico', 'metal', 'vidro', 'organico'],
                 items: [
-                    { emoji: '🥫', name: 'Lata de Alumínio', type: 'metal' }, { emoji: '🔑', name: 'Chave de Metal', type: 'metal' },
-                    { emoji: '🔩', name: 'Parafuso Velho', type: 'metal' }, { emoji: '🪙', name: 'Moeda Antiga', type: 'metal' },
-                    { emoji: '🍾', name: 'Garrafa de Vidro', type: 'vidro' }, { emoji: '🍷', name: 'Copo de Vidro', type: 'vidro' },
-                    { emoji: '🏺', name: 'Pote de Vidro', type: 'vidro' }, { emoji: '🧪', name: 'Frasco de Perfume', type: 'vidro' },
-                    { emoji: '🍌', name: 'Casca de Fruta', type: 'organico' }, { emoji: '🌽', name: 'Espiga de Milho', type: 'organico' },
-                    { emoji: '📰', name: 'Papel de Rascunho', type: 'papel' }, { emoji: '📦', name: 'Caixinha de Suco', type: 'papel' }
+                    { emoji: '🥫', name: 'Lata de Alumínio', type: 'metal' },
+                    { emoji: '🔑', name: 'Chave de Metal', type: 'metal' },
+                    { emoji: '🔩', name: 'Parafuso Velho', type: 'metal' },
+                    { emoji: '🪙', name: 'Moeda Antiga', type: 'metal' },
+                    { emoji: '🍾', name: 'Garrafa de Vidro', type: 'vidro' },
+                    { emoji: '🍷', name: 'Copo de Vidro', type: 'vidro' },
+                    { emoji: '🏺', name: 'Pote de Vidro', type: 'vidro' },
+                    { emoji: '🧪', name: 'Frasco de Perfume', type: 'vidro' },
+                    { emoji: '🍌', name: 'Casca de Fruta', type: 'organico' },
+                    { emoji: '🌽', name: 'Espiga de Milho', type: 'organico' },
+                    { emoji: '📰', name: 'Papel de Rascunho', type: 'papel' },
+                    { emoji: '📦', name: 'Caixinha de Suco', type: 'papel' },
+                    { emoji: '🛍️', name: 'Embalagem Plástica', type: 'plastico' }
                 ]
             },
             {
-                number: 3, name: "Nível 3 - Desafio E-Lixo 🔌", bins: ['papel', 'plastico', 'metal', 'vidro', 'organico', 'eletronico'],
+                number: 3,
+                name: "Nível 3 - Desafio E-Lixo 🔌",
+                bins: ['papel', 'plastico', 'metal', 'vidro', 'organico', 'eletronico'],
                 items: [
-                    { emoji: '📱', name: 'Celular Velho', type: 'eletronico' }, { emoji: '🔋', name: 'Pilha gasta', type: 'eletronico' },
-                    { emoji: '💡', name: 'Lâmpada Queimada', type: 'eletronico' }, { emoji: '🔌', name: 'Cabo de Carregador', type: 'eletronico' },
-                    { emoji: '🎮', name: 'Controle Quebrado', type: 'eletronico' }, { emoji: '🖱️', name: 'Mouse quebrado', type: 'eletronico' },
-                    { emoji: '🥫', name: 'Lata de Alumínio', type: 'metal' }, { emoji: '🍾', name: 'Frasco de Vidro', type: 'vidro' },
-                    { emoji: '🍊', name: 'Casca de Laranja', type: 'organico' }, { emoji: '🗞️', name: 'Folheto de Papel', type: 'papel' }
+                    { emoji: '📱', name: 'Celular Velho', type: 'eletronico' },
+                    { emoji: '🔋', name: 'Pilha gasta', type: 'eletronico' },
+                    { emoji: '💡', name: 'Lâmpada Queimada', type: 'eletronico' },
+                    { emoji: '🔌', name: 'Cabo de Carregador', type: 'eletronico' },
+                    { emoji: '🎮', name: 'Controle Quebrado', type: 'eletronico' },
+                    { emoji: '🖱️', name: 'Mouse quebrado', type: 'eletronico' },
+                    { emoji: '🥫', name: 'Lata de Alumínio', type: 'metal' },
+                    { emoji: '🍾', name: 'Frasco de Vidro', type: 'vidro' },
+                    { emoji: '🍊', name: 'Casca de Laranja', type: 'organico' },
+                    { emoji: '🗞️', name: 'Folheto de Papel', type: 'papel' },
+                    { emoji: '🥤', name: 'Copo Plástico Sujo', type: 'plastico' }
                 ]
             }
         ];
 
-        // SELETORES GERAIS
-        const gameContainer = document.getElementById('game-container');
+        // SELETORES DO DOM
         const startModal = document.getElementById('start-modal');
         const endModal = document.getElementById('end-modal');
+        const endModalContent = document.getElementById('end-modal-content');
         const levelModal = document.getElementById('level-modal');
+        const resetConfirmModal = document.getElementById('reset-confirm-modal');
+        const gameContainer = document.getElementById('game-container');
+        
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+        const confirmResetBtn = document.getElementById('confirm-reset-btn');
+        
+        const playerNameInput = document.getElementById('player-name-input');
+        const nameValidationMsg = document.getElementById('name-validation-msg');
+        const playerDisplayName = document.getElementById('player-display-name');
+        
         const scoreEl = document.getElementById('score');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalTimeEl = document.getElementById('final-time');
+        const itemCounterEl = document.getElementById('item-counter');
+        const levelProgressBar = document.getElementById('level-progress-bar');
+        const levelTitleEl = document.getElementById('level-title');
         const gameTimerEl = document.getElementById('game-timer');
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        
         const trashItemEl = document.getElementById('trash-item');
-        const binsContainer = document.getElementById('bins-container');
         const trashLabelEl = document.getElementById('trash-label');
         const feedbackEl = document.getElementById('feedback');
+        const binsContainer = document.getElementById('bins-container');
+        
+        // BOTÕES DE ACESSIBILIDADE
+        const contrastToggle = document.getElementById('contrast-toggle');
+        const speechToggle = document.getElementById('speech-toggle');
+        const speechIcon = document.getElementById('speech-icon');
+        const speechStatus = document.getElementById('speech-status');
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundIcon = document.getElementById('sound-icon');
+        const soundStatus = document.getElementById('sound-status');
 
-        let playerName = "Jogador", score = 0, currentLevelIndex = 0, currentItemIndex = 0;
-        let levelTrashItems = [], selectedTrashItem = null;
-        let isSoundOn = true, isSpeechOn = true, highContrast = false, audioInitialized = false;
-        let timeElapsed = 0.0, timerInterval = null;
+        // ESTADO GLOBAL DO JOGO
+        let playerName = "Jogador";
+        let score = 0;
+        let currentLevelIndex = 0;
+        let currentItemIndex = 0;
+        let levelTrashItems = [];
+        let selectedTrashItem = null;
+
+        let isSoundOn = true;
+        let isSpeechOn = true;
+        let highContrast = false;
+        let audioInitialized = false;
+
+        let timeElapsed = 0.0;
+        let timerInterval = null;
+
         let correctSynth, incorrectSynth, clickSynth, levelUpSynth, endSynth;
 
         function fisherYatesShuffle(array) {
@@ -489,23 +454,30 @@
             if (audioInitialized) return;
             try {
                 correctSynth = new Tone.PolySynth(Tone.Synth).toDestination();
-                incorrectSynth = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.1 } }).toDestination();
+                incorrectSynth = new Tone.Synth({
+                    oscillator: { type: 'square' },
+                    envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.1 }
+                }).toDestination();
                 clickSynth = new Tone.Synth({ envelope: { attack: 0.01, decay: 0.1, release: 0.1 } }).toDestination();
                 levelUpSynth = new Tone.PolySynth(Tone.Synth).toDestination();
                 endSynth = new Tone.PolySynth(Tone.Synth).toDestination();
                 audioInitialized = true;
-            } catch (e) { console.error("Tone erro:", e); }
+            } catch (e) {
+                console.error("Tone.js init error: ", e);
+            }
         }
 
         function playTone(type) {
             if (!isSoundOn || !audioInitialized) return;
             const now = Tone.now();
             try {
-                if(type==='correct') correctSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '6n', now);
-                if(type==='incorrect') incorrectSynth.triggerAttackRelease('A#2', '4n', now);
-                if(type==='click') clickSynth.triggerAttackRelease('C5', '16n', now);
-                if(type==='levelup') levelUpSynth.triggerAttackRelease(['G4', 'B4', 'D5', 'G5'], '4n', now);
-                if(type==='end') endSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '2n', now);
+                switch(type) {
+                    case 'correct': correctSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '6n', now); break;
+                    case 'incorrect': incorrectSynth.triggerAttackRelease('A#2', '4n', now); break;
+                    case 'click': clickSynth.triggerAttackRelease('C5', '16n', now); break;
+                    case 'levelup': levelUpSynth.triggerAttackRelease(['G4', 'B4', 'D5', 'G5'], '4n', now); break;
+                    case 'end': endSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '2n', now); break;
+                }
             } catch(e) {}
         }
 
@@ -513,7 +485,9 @@
         function loadVoices() {
             if (!('speechSynthesis' in window)) return;
             const voices = window.speechSynthesis.getVoices();
-            ptVoice = voices.find(v => v.lang === 'pt-BR' || v.lang === 'pt_BR') || voices.find(v => v.lang.startsWith('pt'));
+            // Garante o sotaque PT-BR do Brasil
+            ptVoice = voices.find(v => v.lang === 'pt-BR' || v.lang === 'pt_BR') || 
+                      voices.find(v => v.lang.startsWith('pt'));
         }
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -526,9 +500,12 @@
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'pt-BR';
             if (ptVoice) utterance.voice = ptVoice;
+            
+            // OTIMIZAÇÃO DE DISPOSITIVO: Motores de voz de celular aceleram mais a fala que no PC.
             const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-            utterance.rate = isMobileDevice ? 1.15 : 1.45;
+            utterance.rate = isMobileDevice ? 1.15 : 1.45; // Suave no celular, rápido no PC
             utterance.pitch = 1.05; 
+            
             window.speechSynthesis.speak(utterance);
         }
 
@@ -546,21 +523,76 @@
 
         function stopTimer() { clearInterval(timerInterval); }
 
+        function getLeaderboard() {
+            const rawData = localStorage.getItem('uninter_coleta_leaderboard');
+            return rawData ? JSON.parse(rawData) : [];
+        }
+
+        function saveScoreToLeaderboard(name, finalScore, elapsedTime) {
+            let leaderboard = getLeaderboard();
+            const newRecord = { name: name, score: finalScore, time: elapsedTime, timestamp: Date.now() };
+            leaderboard.push(newRecord);
+            leaderboard.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score; 
+                return a.time - b.time; 
+            });
+            localStorage.setItem('uninter_coleta_leaderboard', JSON.stringify(leaderboard));
+            return newRecord;
+        }
+
+        function renderLeaderboardTable(activeRecord) {
+            const leaderboard = getLeaderboard();
+            leaderboardBody.innerHTML = '';
+            const topFive = leaderboard.slice(0, 5);
+
+            if (topFive.length === 0) {
+                leaderboardBody.innerHTML = `<tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 font-medium">Nenhum registro no placar ainda.</td></tr>`;
+                return;
+            }
+
+            topFive.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                const isCurrentRun = (activeRecord && row.timestamp === activeRecord.timestamp);
+                const bgClass = isCurrentRun ? 'bg-green-100 font-extrabold text-green-900 border-l-4 border-green-600' : 'hover:bg-gray-50 text-gray-700';
+                
+                let positionBadge = `${index + 1}º`;
+                if (index === 0) positionBadge = '🥇';
+                if (index === 1) positionBadge = '🥈';
+                if (index === 2) positionBadge = '🥉';
+
+                tr.className = `${bgClass} border-b border-gray-100 transition-colors`;
+                tr.innerHTML = `
+                    <td class="px-2 py-2 text-center font-bold text-gray-500">${positionBadge}</td>
+                    <td class="px-2 py-2 truncate max-w-[120px]">${row.name}</td>
+                    <td class="px-2 py-2 text-center text-green-600 font-extrabold">${row.score}</td>
+                    <td class="px-2 py-2 text-center text-red-500 font-medium">${row.time.toFixed(1)}s</td>
+                `;
+                leaderboardBody.appendChild(tr);
+            });
+        }
+
         function setupLevel() {
             const level = LEVELS[currentLevelIndex];
-            document.getElementById('level-title').textContent = level.name;
+            levelTitleEl.textContent = level.name;
             currentItemIndex = 0;
             const shuffledPool = fisherYatesShuffle(level.items);
-            levelTrashItems = shuffledPool.slice(0, 5); // 5 items por nivel
-            
+            levelTrashItems = shuffledPool.slice(0, 5);
+            renderBinsForLevel(level.bins);
+            updateProgress();
+            loadCurrentTrashItem();
+        }
+
+        function renderBinsForLevel(activeBinsKeys) {
             binsContainer.innerHTML = '';
-            level.bins.forEach((key, index) => {
+            activeBinsKeys.forEach((key, index) => {
                 const binData = ALL_BINS[key];
                 const button = document.createElement('button');
+                // AJUSTE MOBILE: Garante que as lixeiras vão empilhar de 2 em 2 com altura ideal na tela do celular
                 button.className = `bin p-2 md:p-4 rounded-xl shadow-lg flex flex-col items-center justify-center md:justify-between h-28 md:h-40 border-b-4 md:border-b-8 transition-all active:scale-95 text-white ${binData.class}`;
                 button.dataset.type = binData.type;
+                button.dataset.key = binData.key;
                 button.innerHTML = `
-                    <span class="text-3xl md:text-4xl" role="img">${binData.emoji}</span>
+                    <span class="text-3xl md:text-4xl" role="img" aria-label="${binData.name}">${binData.emoji}</span>
                     <span class="font-bold text-xs md:text-lg leading-tight mt-1 md:mt-0">${binData.name}</span>
                     <span class="hidden md:block text-[10px] bg-black/20 px-2 py-0.5 rounded-full mt-1">Atalho: ${index + 1}</span>
                 `;
@@ -573,15 +605,13 @@
                 });
                 binsContainer.appendChild(button);
             });
-
-            updateProgress();
-            loadCurrentTrashItem();
         }
 
         function loadCurrentTrashItem() {
             if (currentItemIndex >= levelTrashItems.length) { concludeLevel(); return; }
             const item = levelTrashItems[currentItemIndex];
             
+            // Limpa o item e a posição do toque
             trashItemEl.classList.remove('correct-animation', 'incorrect-animation', 'selected-active');
             trashItemEl.style.transform = '';
             selectedTrashItem = null;
@@ -594,9 +624,9 @@
 
         function updateProgress() {
             scoreEl.textContent = score;
-            const total = levelTrashItems.length;
-            document.getElementById('item-counter').textContent = `${Math.min(currentItemIndex + 1, total)} / ${total}`;
-            document.getElementById('level-progress-bar').style.width = `${(Math.min(currentItemIndex, total) / total) * 100}%`;
+            const totalItems = levelTrashItems.length;
+            itemCounterEl.textContent = `${Math.min(currentItemIndex + 1, totalItems)} / ${totalItems}`;
+            levelProgressBar.style.width = `${(Math.min(currentItemIndex, totalItems) / totalItems) * 100}%`;
         }
 
         function evaluateMatch(droppedBinType) {
@@ -604,7 +634,7 @@
             const item = levelTrashItems[currentItemIndex];
             
             trashItemEl.classList.remove('selected-active');
-            trashItemEl.style.transform = '';
+            trashItemEl.style.transform = ''; // Limpa translate do touch
             selectedTrashItem = null;
 
             if (droppedBinType === correctType) {
@@ -617,7 +647,7 @@
                 playTone('incorrect');
                 showFeedback("Incorreto! ❌", "text-red-600 border-red-200");
                 trashItemEl.classList.add('incorrect-animation');
-                speakText(`Incorreto. O correto é na lixeira de ${ALL_BINS[correctType].name}.`);
+                speakText(`Incorreto. O lugar correto do ${item.name} é na lixeira de ${ALL_BINS[correctType].name}.`);
             }
             updateProgress();
             setTimeout(() => { currentItemIndex++; updateProgress(); loadCurrentTrashItem(); }, 600);
@@ -632,31 +662,35 @@
         function concludeLevel() {
             playTone('levelup');
             if (currentLevelIndex < LEVELS.length - 1) {
+                const currentLevelName = LEVELS[currentLevelIndex].name;
                 currentLevelIndex++;
-                document.getElementById('level-modal-title').textContent = `${LEVELS[currentLevelIndex-1].name} Concluído!`;
+                document.getElementById('level-modal-title').textContent = `${currentLevelName} Concluído!`;
+                document.getElementById('level-modal-desc').textContent = `Você está pronto para a próxima fase?`;
                 levelModal.classList.remove('hidden');
-                speakText(`Fase concluída! Clique para a próxima.`);
+                speakText(`Fase concluída! Clique no botão para a próxima etapa.`);
             } else {
                 concludeGame();
             }
         }
 
-        async function concludeGame() {
+        function concludeGame() {
             stopTimer();
             playTone('end');
-            document.getElementById('final-score').textContent = score;
-            document.getElementById('final-time').textContent = timeElapsed.toFixed(1);
-            
-            // Renderiza o que já existe em memória e envia para a nuvem
-            renderLeaderboardTable();
-            saveScoreToCloud(playerName, score, timeElapsed);
-            
+            finalScoreEl.textContent = score;
+            finalTimeEl.textContent = timeElapsed.toFixed(1);
+            const activeRecord = saveScoreToLeaderboard(playerName, score, timeElapsed);
+            renderLeaderboardTable(activeRecord);
             endModal.classList.remove('hidden');
-            speakText(`Parabéns, ${playerName}! Completou com ${score} pontos em ${timeElapsed.toFixed(0)} segundos.`);
+            speakText(`Parabéns, ${playerName}! Você completou todo o desafio com ${score} pontos em ${timeElapsed.toFixed(0)} segundos.`);
         }
 
-        // EVENTOS DE TOQUE MOBILE
-        let initialX = 0, initialY = 0, currentX = 0, currentY = 0, isDragging = false, activeTouchBin = null;
+        // ========================================================
+        // SUPORTE A EVENTOS DE TOQUE NATIVO EM SMARTPHONES (MOBILE)
+        // ========================================================
+        let initialX = 0, initialY = 0;
+        let currentX = 0, currentY = 0;
+        let isDragging = false;
+        let activeTouchBin = null;
 
         trashItemEl.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
@@ -669,13 +703,18 @@
 
         trashItemEl.addEventListener('touchmove', (e) => {
             if (!isDragging) return;
-            e.preventDefault(); 
+            e.preventDefault(); // Impede o scroll da tela inteira (ESSENCIAL PARA MOBILE)
+            
             currentX = e.touches[0].clientX - initialX;
             currentY = e.touches[0].clientY - initialY;
+            
+            // Move o lixo com o dedo
             trashItemEl.style.transform = `translate(${currentX}px, ${currentY}px) scale(0.9)`;
 
+            // Lógica para descobrir qual lixeira está embaixo do dedo do usuário
             const touch = e.touches[0];
             const originalDisplay = trashItemEl.style.display;
+            // Oculta o item rapidamente para o navegador "enxergar" a lixeira embaixo dele
             trashItemEl.style.display = 'none';
             const elementUnderTouch = document.elementFromPoint(touch.clientX, touch.clientY);
             trashItemEl.style.display = originalDisplay;
@@ -684,6 +723,7 @@
                 activeTouchBin.classList.remove('drag-over');
                 activeTouchBin = null;
             }
+
             const binEl = elementUnderTouch?.closest('.bin');
             if (binEl) {
                 binEl.classList.add('drag-over');
@@ -694,10 +734,13 @@
         trashItemEl.addEventListener('touchend', (e) => {
             if (!isDragging) return;
             isDragging = false;
+            
             trashItemEl.style.transform = '';
             trashItemEl.classList.remove('scale-75', 'opacity-70');
-            currentX = 0; currentY = 0;
+            currentX = 0;
+            currentY = 0;
 
+            // Se o usuário soltou o dedo em cima de uma lixeira
             if (activeTouchBin) {
                 activeTouchBin.classList.remove('drag-over');
                 evaluateMatch(activeTouchBin.dataset.type);
@@ -705,7 +748,9 @@
             }
         });
         
-        // EVENTOS PC
+        // ========================================================
+        // SUPORTE TRADICIONAL A CLIQUES E DRAG AND DROP (PC)
+        // ========================================================
         trashItemEl.addEventListener('click', (e) => {
             e.stopPropagation();
             if (selectedTrashItem) {
@@ -715,7 +760,7 @@
             } else {
                 selectedTrashItem = trashItemEl;
                 trashItemEl.classList.add('selected-active');
-                speakText(`Escolha a lixeira.`);
+                speakText(`${levelTrashItems[currentItemIndex].name} selecionado. Escolha a lixeira.`);
             }
         });
 
@@ -743,57 +788,72 @@
             trashItemEl.classList.add('scale-75', 'opacity-50');
             e.dataTransfer.setData('text/plain', trashItemEl.dataset.type);
         });
-        trashItemEl.addEventListener('dragend', () => { trashItemEl.classList.remove('scale-75', 'opacity-50'); });
+        
+        trashItemEl.addEventListener('dragend', () => { 
+            trashItemEl.classList.remove('scale-75', 'opacity-50'); 
+        });
 
-        // BTNS GERAIS
-        document.getElementById('contrast-toggle').addEventListener('click', () => {
+        // ========================================================
+        // CONTROLES DE ACESSIBILIDADE GERAL
+        // ========================================================
+        contrastToggle.addEventListener('click', () => {
             highContrast = !highContrast;
             if (highContrast) {
                 document.body.className = "bg-pattern-contrast flex flex-col items-center justify-between min-h-screen p-2 md:p-4 text-yellow-400 bg-black";
                 document.querySelectorAll('.bg-white, .bg-white\\/90').forEach(el => { el.classList.add('bg-black', 'border-2', 'border-white', 'text-white'); el.classList.remove('bg-white', 'bg-white/90'); });
-                document.getElementById('contrast-toggle').className = "flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-black text-xs font-black py-2 px-3 rounded-lg border-2 border-black transition-colors";
+                contrastToggle.className = "flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-black text-xs font-black py-2 px-3 rounded-lg border-2 border-black transition-colors";
                 speakText("Alto contraste ativado.");
             } else {
                 document.body.className = "bg-pattern-light flex flex-col items-center justify-between min-h-screen p-2 md:p-4 text-gray-800";
                 document.querySelectorAll('.border-white').forEach(el => { el.classList.add('bg-white/90'); el.classList.remove('bg-black', 'border-2', 'border-white', 'text-white'); });
-                document.getElementById('contrast-toggle').className = "flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors";
+                contrastToggle.className = "flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors";
                 speakText("Visual normal restaurado.");
             }
         });
 
-        document.getElementById('speech-toggle').addEventListener('click', () => {
+        speechToggle.addEventListener('click', () => {
             isSpeechOn = !isSpeechOn;
-            document.getElementById('speech-icon').textContent = isSpeechOn ? "🔊" : "🔇";
-            document.getElementById('speech-status').textContent = isSpeechOn ? "ON" : "OFF";
-            if (isSpeechOn) speakText("Voz ativada.");
+            speechIcon.textContent = isSpeechOn ? "🔊" : "🔇";
+            speechStatus.textContent = isSpeechOn ? "ON" : "OFF";
+            if (isSpeechOn) speakText("Leitura de voz ativada.");
         });
 
-        document.getElementById('sound-toggle').addEventListener('click', async () => {
+        soundToggle.addEventListener('click', async () => {
             isSoundOn = !isSoundOn;
-            document.getElementById('sound-icon').textContent = isSoundOn ? "🎵" : "🔇";
-            document.getElementById('sound-status').textContent = isSoundOn ? "ON" : "OFF";
+            soundIcon.textContent = isSoundOn ? "🎵" : "🔇";
+            soundStatus.textContent = isSoundOn ? "ON" : "OFF";
             if (isSoundOn) {
                 if (!audioInitialized) { await Tone.start(); initializeAudio(); }
                 playTone('click');
             }
         });
 
-        document.getElementById('restart-button').addEventListener('click', () => {
+        restartButton.addEventListener('click', () => {
             endModal.classList.add('hidden');
             startModal.classList.remove('hidden');
-            document.getElementById('player-name-input').value = "";
+            playerNameInput.value = "";
+            nameValidationMsg.classList.add('hidden');
         });
 
-        document.getElementById('start-button').addEventListener('click', async () => {
-            const rawName = document.getElementById('player-name-input').value.trim();
+        clearLeaderboardBtn.addEventListener('click', () => resetConfirmModal.classList.remove('hidden'));
+        cancelResetBtn.addEventListener('click', () => resetConfirmModal.classList.add('hidden'));
+        confirmResetBtn.addEventListener('click', () => {
+            localStorage.removeItem('uninter_coleta_leaderboard');
+            resetConfirmModal.classList.add('hidden');
+            renderLeaderboardTable(null);
+            speakText("Placar limpo com sucesso!");
+        });
+
+        startButton.addEventListener('click', async () => {
+            const rawName = playerNameInput.value.trim();
             if (rawName.length < 2) {
-                document.getElementById('name-validation-msg').classList.remove('hidden');
-                speakText("Digite seu nome.");
+                nameValidationMsg.classList.remove('hidden');
+                speakText("Por favor, digite seu nome para continuar.");
                 return;
             }
-            document.getElementById('name-validation-msg').classList.add('hidden');
+            nameValidationMsg.classList.add('hidden');
             playerName = rawName;
-            document.getElementById('player-display-name').textContent = playerName;
+            playerDisplayName.textContent = playerName;
 
             if (!audioInitialized) { try { await Tone.start(); initializeAudio(); } catch(e) {} }
             playTone('click');
@@ -802,7 +862,7 @@
             startModal.classList.add('hidden');
             gameContainer.classList.remove('hidden');
             
-            speakText(`Boa sorte, ${playerName}!`);
+            speakText(`Boa sorte, ${playerName}! Nível um: Reciclagem Básica.`);
             startTimer(); setupLevel();
         });
         
