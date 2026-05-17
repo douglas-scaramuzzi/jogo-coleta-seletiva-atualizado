@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Recolha Seletiva Digital - Edição de Inclusão II</title>
+    
+    <!-- 
+      PROJETO: Jogo da Recolha Seletiva Digital: Edição Inclusão Digital e Acessibilidade (Atividade Extensionista II)
+      AUTOR: Douglas Alexander Scaramuzzi (RU 5120066) - CST em Banco de Dados (UNINTER)
+    -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Fundo padrão amigo do ambiente */
+        .bg-pattern-light {
+            background-color: #F0FDF4;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23A7F3D0' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        /* Fundo simplificado para Alto Contraste */
+        .bg-pattern-contrast {
+            background-color: #121212 !important;
+            background-image: none !important;
+        }
+
+        .bin {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border 0.2s ease;
+        }
+        .bin.drag-over {
+            transform: scale(1.08);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+        }
+        /* Destaque para item selecionado via teclado ou clique */
+        .bin.selected-target {
+            outline: 5px solid #EAB308;
+            outline-offset: 4px;
+            transform: scale(1.05);
+        }
+
+        .trash-item {
+            cursor: grab;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.3);
+        }
+        .trash-item:active {
+            cursor: grabbing;
+            transform: scale(1.2);
+        }
+        .trash-item.selected-active {
+            animation: bounce 1s infinite;
+            outline: 4px dashed #16A34A;
+            border-radius: 1rem;
+            padding: 0.5rem;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes correct-throw {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3) rotate(20deg); }
+            100% { transform: scale(0.1) translateY(80px); opacity: 0; }
+        }
+        .correct-animation {
+            animation: correct-throw 0.5s forwards;
+        }
+
+        @keyframes incorrect-shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px); }
+            40%, 80% { transform: translateX(12px); }
+        }
+        .incorrect-animation {
+            animation: incorrect-shake 0.4s;
+        }
+    </style>
+</head>
+<body class="bg-pattern-light flex flex-col items-center justify-between min-h-screen p-4 text-gray-800">
+
+    <!-- BARRA SUPERIOR DE CONTROLE E ACESSIBILIDADE -->
+    <header class="w-full max-w-4xl bg-white/90 backdrop-blur-sm shadow-md rounded-2xl p-4 mb-4 flex flex-wrap gap-3 justify-between items-center z-10">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">🌱</span>
+            <div>
+                <h1 class="font-bold text-green-800 text-lg md:text-xl leading-tight">Recolha Seletiva Inclusiva</h1>
+                <p class="text-xs text-gray-500">Desenvolvido por Douglas Scaramuzzi</p>
+            </div>
+        </div>
+
+        <!-- PAINEL DE ACESSIBILIDADE -->
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Modo Alto Contraste -->
+            <button id="contrast-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Alternar Alto Contraste para baixa visão ou daltonismo" aria-label="Modo Alto Contraste">
+                <span>👁️</span> <span>Alto Contraste</span>
+            </button>
+
+            <!-- Narração de Voz -->
+            <button id="speech-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Ativar/Desativar leitura de ecrã e audiodescrição por voz" aria-label="Narração de Voz">
+                <span id="speech-icon">🔊</span> <span>Voz: <span id="speech-status">ON</span></span>
+            </button>
+
+            <!-- Controle de Som -->
+            <button id="sound-toggle" class="flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors" title="Mudar som do jogo" aria-label="Efeitos Sonoros">
+                <span id="sound-icon">🎵</span> <span>Efeitos: <span id="sound-status">ON</span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MODAL DE BOAS-VINDAS / REGISTO DE NOME -->
+    <div id="start-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl text-center max-w-lg w-full p-8 border-t-8 border-green-500 transform transition-all scale-100">
+            <div class="text-6xl mb-4">🌎</div>
+            <h2 class="text-3xl font-extrabold text-green-700 mb-1">Jogo da Recolha Seletiva</h2>
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Edição II - CST em Banco de Dados</p>
+            
+            <!-- CAMPO DE ENTRADA DO NOME DO UTILIZADOR -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4 text-left">
+                <label for="player-name-input" class="block text-sm font-bold text-gray-700 mb-1">Introduza o seu primeiro nome:</label>
+                <input type="text" id="player-name-input" maxlength="12" placeholder="Ex: Douglas" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 font-semibold text-gray-800">
+                <p id="name-validation-msg" class="text-red-500 text-xs mt-1 hidden font-semibold">⚠️ Por favor, introduza o seu nome para continuar.</p>
+            </div>
+
+            <div class="bg-green-50 rounded-xl p-4 text-left text-sm text-green-900 space-y-1 mb-6 border border-green-200">
+                <p class="font-bold">✨ Novidades e Regras de Classificação:</p>
+                <p>🟢 <strong>3 Fases Rápidas:</strong> Descubra se consegue o Top 1 do placar!</p>
+                <p>⏱️ <strong>Tempo Real:</strong> Seja rápido! Em caso de empate na pontuação, o menor tempo vence.</p>
+                <p>⌨️ <strong>Teclado:</strong> Use as teclas <strong>1 a 6</strong> para descartar de forma profissional.</p>
+            </div>
+
+            <button id="start-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg transition-transform transform hover:scale-105 active:scale-95">
+                Iniciar Jogo
+            </button>
+        </div>
+    </div>
+
+    <!-- ECRÃ PRINCIPAL DO JOGO -->
+    <main id="game-container" class="w-full max-w-4xl flex flex-col flex-grow items-center justify-center hidden my-4">
+        
+        <!-- PAINEL DE STATUS E CRONOGRAMA DE NÍVEIS (RESPONSIVO COM TIMER) -->
+        <div class="w-full bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-md mb-6 border border-gray-200">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center items-center">
+                <!-- Utilizador Atual -->
+                <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0">
+                    <span class="text-xs uppercase font-semibold text-gray-500 block">Utilizador</span>
+                    <span id="player-display-name" class="text-base font-extrabold text-blue-700 truncate block">Douglas</span>
+                </div>
+                <!-- Nível Atual -->
+                <div class="border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0">
+                    <span class="text-xs uppercase font-semibold text-gray-500 block">Fase Atual</span>
+                    <span id="level-title" class="text-sm font-bold text-green-700">Nível 1 - Básica</span>
+                </div>
+                <!-- Pontuação -->
+                <div class="border-r border-gray-200">
+                    <span class="text-xs uppercase font-semibold text-gray-500 block">Pontos Totais</span>
+                    <div class="flex items-center justify-center gap-1">
+                        <span id="score" class="text-2xl font-extrabold text-green-600">0</span>
+                        <span class="text-xs text-gray-400">pts</span>
+                    </div>
+                </div>
+                <!-- Tempo Decorrido -->
+                <div>
+                    <span class="text-xs uppercase font-semibold text-gray-500 block">Tempo Corrido</span>
+                    <div class="flex items-center justify-center gap-1">
+                        <span id="game-timer" class="text-2xl font-extrabold text-red-500">0.0</span>
+                        <span class="text-xs text-gray-400">s</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso Visual do Jogo -->
+            <div class="mt-4">
+                <div class="flex justify-between text-xs text-gray-500 mb-1">
+                    <span>Progresso da Fase</span>
+                    <span id="item-counter" class="font-bold">1 / 5</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div id="level-progress-bar" class="bg-green-600 h-full transition-all duration-300" style="width: 20%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ÁREA CENTRAL: ITEM DE DESCARTE -->
+        <div class="w-full bg-white/90 backdrop-blur-sm border-2 border-dashed border-green-300 rounded-3xl p-8 mb-8 text-center relative shadow-sm min-h-[14rem] flex flex-col justify-center items-center">
+            
+            <div id="instruction-tap" class="text-xs font-semibold text-green-600 bg-green-50 rounded-full py-1 px-3 mb-2">
+                💡 Arraste o resíduo abaixo ou CLIQUE nele para selecionar!
+            </div>
+
+            <div id="trash-area" class="flex flex-col items-center justify-center">
+                <!-- Elemento do resíduo que será arrastado ou clicado -->
+                <button id="trash-item" draggable="true" class="trash-item text-7xl md:text-8xl focus:outline-none focus:ring-4 focus:ring-green-400 rounded-xl p-2 active:scale-110" aria-label="Item reciclável">
+                    🌱
+                </button>
+                <div id="trash-label" class="text-lg font-bold text-gray-700 mt-2 bg-gray-100 py-1 px-4 rounded-full border border-gray-200">
+                    A carregar...
+                </div>
+            </div>
+
+            <!-- Caixa de Feedback Positivo/Negativo Flutuante -->
+            <div id="feedback" class="absolute -bottom-6 left-1/2 -translate-x-1/2 text-lg md:text-xl font-extrabold whitespace-nowrap bg-white py-2 px-6 rounded-full shadow-lg border border-gray-200 scale-0 transition-transform duration-300 z-10">
+                Correto!
+            </div>
+        </div>
+
+        <!-- TABELA DE ATALHOS / LEGENDA DE ACESSIBILIDADE TECLADO -->
+        <div id="keyboard-legend" class="text-xs text-gray-500 bg-gray-100 p-2 rounded-lg mb-4 text-center hidden md:block w-full">
+            ⌨️ <strong>Atalhos do Teclado:</strong> Pressione as teclas numéricas de <strong>1 a 6</strong> no teclado para depositar rapidamente no ecoponto desejado!
+        </div>
+
+        <!-- RECIPIENTES DE RECOLHA (ECOPONTOS) -->
+        <div id="bins-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 md:gap-6 w-full">
+            <!-- Gerado dinamicamente via JS com base no nível -->
+        </div>
+    </main>
+
+    <!-- FOOTER DA UNINTER -->
+    <footer class="w-full text-center text-xs text-gray-400 mt-4 border-t border-gray-200/50 pt-2 flex justify-between items-center max-w-4xl px-2">
+        <span>UNINTER • Escola Superior Politécnica</span>
+        <span>Atividade Extensionista II • Banco de Dados</span>
+    </footer>
+
+    <!-- MODAL DE TRANSIÇÃO DE FASES -->
+    <div id="level-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 text-center max-w-md w-full border-t-8 border-blue-500">
+            <div id="level-modal-emoji" class="text-5xl mb-3">🎉</div>
+            <h3 id="level-modal-title" class="text-2xl font-bold text-blue-800 mb-2">Fase Concluída!</h3>
+            <p id="level-modal-desc" class="text-sm text-gray-600 mb-6">Está pronto para a próxima fase?</p>
+            <button id="level-modal-next" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md">
+                Avançar de Fase
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL DE FINALIZAÇÃO / PLACAR DE LÍDERES (LEADERBOARD) -->
+    <div id="end-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl text-center max-w-lg w-full p-6 border-t-8 border-yellow-500 transform transition-all scale-95 overflow-y-auto max-h-[95vh]" id="end-modal-content">
+            <div class="text-5xl mb-2">🏆</div>
+            <h2 class="text-2xl font-extrabold text-yellow-600 mb-1">Resultado Final!</h2>
+            <p class="text-gray-500 text-xs mb-3">Desafio de Recolha Seletiva Concluído com Sucesso</p>
+            
+            <!-- RESULTADO DA PARTIDA DO UTILIZADOR -->
+            <div class="grid grid-cols-2 gap-3 bg-yellow-50 rounded-xl p-3 border border-yellow-200 mb-4">
+                <div>
+                    <span class="text-[10px] uppercase font-semibold text-gray-500 block">A sua Pontuação</span>
+                    <p id="final-score" class="text-3xl font-extrabold text-green-600">0</p>
+                    <span class="text-[10px] text-gray-400">pontos</span>
+                </div>
+                <div>
+                    <span class="text-[10px] uppercase font-semibold text-gray-500 block">Tempo Total</span>
+                    <p id="final-time" class="text-3xl font-extrabold text-red-500">0.0</p>
+                    <span class="text-[10px] text-gray-400">segundos</span>
+                </div>
+            </div>
+
+            <!-- PAINEL DO BANCO DE DADOS LOCAL: TOP 5 LÍDERES -->
+            <div class="bg-gray-50 rounded-xl p-4 border border-gray-200 mb-5 text-left">
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="text-xs font-extrabold text-gray-700 uppercase tracking-wider">📊 Placar de Líderes Local (Top 5)</h4>
+                    <button id="clear-leaderboard-btn" class="text-[10px] font-bold text-red-500 hover:underline">Limpar Placar</button>
+                </div>
+                <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-gray-100 text-[10px] uppercase text-gray-600 border-b border-gray-200">
+                            <tr>
+                                <th class="px-3 py-2 text-center">Pos</th>
+                                <th class="px-3 py-2">Utilizador</th>
+                                <th class="px-3 py-2 text-center">Pontos</th>
+                                <th class="px-3 py-2 text-center">Tempo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button id="restart-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl text-lg shadow-lg transition-transform transform hover:scale-105 active:scale-95">
+                Jogar Novamente
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL CUSTOMIZADO PARA CONFIRMAÇÃO DE RESET DO BANCO -->
+    <div id="reset-confirm-modal" class="fixed inset-0 bg-black/95 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 text-center max-w-xs w-full border border-red-500">
+            <div class="text-3xl mb-2">🗑️</div>
+            <h5 class="text-lg font-bold text-red-600 mb-1">Limpar Placar?</h5>
+            <p class="text-xs text-gray-500 mb-4">Esta ação irá apagar todos os recordes do banco de dados local. Confirmar?</p>
+            <div class="flex gap-2">
+                <button id="cancel-reset-btn" class="w-1/2 bg-gray-200 text-gray-800 text-xs font-bold py-2 rounded-lg">Não</button>
+                <button id="confirm-reset-btn" class="w-1/2 bg-red-600 text-white text-xs font-bold py-2 rounded-lg">Sim, Limpar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DEFINIÇÃO DETALHADA DE TODOS OS ECOPONTOS
+        const ALL_BINS = {
+            papel: { type: 'papel', color: 'blue-500', name: 'Papel', emoji: '📰', key: '1', class: 'bg-blue-600 border-blue-700' },
+            plastico: { type: 'plastico', color: 'red-500', name: 'Plástico', emoji: '🧴', key: '2', class: 'bg-red-600 border-red-700' },
+            metal: { type: 'metal', color: 'yellow-500', name: 'Metal', emoji: '🥫', key: '3', class: 'bg-yellow-500 text-gray-900 border-yellow-600' },
+            vidro: { type: 'vidro', color: 'green-600', name: 'Vidro', emoji: '🍾', key: '4', class: 'bg-green-600 border-green-700' },
+            organico: { type: 'organico', color: 'amber-800', name: 'Orgânico', emoji: '🍌', key: '5', class: 'bg-amber-800 border-amber-900' },
+            eletronico: { type: 'eletronico', color: 'orange-500', name: 'Eletrónicos', emoji: '🔌', key: '6', class: 'bg-orange-500 border-orange-600' }
+        };
+
+        // DEFINIÇÃO DOS TRÊS NÍVEIS PEDAGÓGICOS PROGRESSIVOS
+        const LEVELS = [
+            {
+                number: 1,
+                name: "Nível 1 - Reciclagem Básica 🌱",
+                bins: ['papel', 'plastico', 'organico'],
+                items: [
+                    { emoji: '📰', name: 'Folha de Caderno', type: 'papel' },
+                    { emoji: '📦', name: 'Caixa de Cartão', type: 'papel' },
+                    { emoji: '🗞️', name: 'Jornal Velho', type: 'papel' },
+                    { emoji: '✉️', name: 'Envelope de Papel', type: 'papel' },
+                    { emoji: '🧴', name: 'Garrafa de Água Plástica', type: 'plastico' },
+                    { emoji: '🛍️', name: 'Saco Plástico Amassado', type: 'plastico' },
+                    { emoji: '🥤', name: 'Copo Plástico descartável', type: 'plastico' },
+                    { emoji: '🧸', name: 'Brinquedo Plástico Partido', type: 'plastico' },
+                    { emoji: '🍌', name: 'Casca de Banana', type: 'organico' },
+                    { emoji: '🍎', name: 'Resto de Maçã', type: 'organico' },
+                    { emoji: '🍉', name: 'Pedaço de Melancia', type: 'organico' },
+                    { emoji: '🥚', name: 'Casca de Ovo', type: 'organico' }
+                ]
+            },
+            {
+                number: 2,
+                name: "Nível 2 - Recolha Seletiva Completa ♻️",
+                bins: ['papel', 'plastico', 'metal', 'vidro', 'organico'],
+                items: [
+                    { emoji: '🥫', name: 'Lata de Refrigerante', type: 'metal' },
+                    { emoji: '🔑', name: 'Chave de Metal', type: 'metal' },
+                    { emoji: '🔩', name: 'Parafuso Enferrujado', type: 'metal' },
+                    { emoji: '🪙', name: 'Moeda Antiga', type: 'metal' },
+                    { emoji: '🍾', name: 'Garrafa de Vidro', type: 'vidro' },
+                    { emoji: '🍷', name: 'Copo de Vidro Partido', type: 'vidro' },
+                    { emoji: '🏺', name: 'Pote de Vidro', type: 'vidro' },
+                    { emoji: '🧪', name: 'Frasco de Perfume', type: 'vidro' },
+                    { emoji: '🍌', name: 'Casca de Fruta', type: 'organico' },
+                    { emoji: '🌽', name: 'Espiga de Milho', type: 'organico' },
+                    { emoji: '📰', name: 'Papel de Rascunho', type: 'papel' },
+                    { emoji: '📦', name: 'Pacote de Sumo', type: 'papel' },
+                    { emoji: '🛍️', name: 'Embalagem Plástica', type: 'plastico' }
+                ]
+            },
+            {
+                number: 3,
+                name: "Nível 3 - Desafio E-Lixo e Especiais 🔌",
+                bins: ['papel', 'plastico', 'metal', 'vidro', 'organico', 'eletronico'],
+                items: [
+                    { emoji: '📱', name: 'Telemóvel Velho', type: 'eletronico' },
+                    { emoji: '🔋', name: 'Pilha usada', type: 'eletronico' },
+                    { emoji: '💡', name: 'Lâmpada Fundida', type: 'eletronico' },
+                    { emoji: '🔌', name: 'Cabo de Carregador', type: 'eletronico' },
+                    { emoji: '🎮', name: 'Comando de consola partido', type: 'eletronico' },
+                    { emoji: '🖱️', name: 'Rato de computador partido', type: 'eletronico' },
+                    { emoji: '🥫', name: 'Lata de Alumínio', type: 'metal' },
+                    { emoji: '🍾', name: 'Frasco de Vidro', type: 'vidro' },
+                    { emoji: '🍊', name: 'Casca de Laranja', type: 'organico' },
+                    { emoji: '🗞️', name: 'Folheto de Papel', type: 'papel' },
+                    { emoji: '🥤', name: 'Copo Plástico Sujo', type: 'plastico' }
+                ]
+            }
+        ];
+
+        // SELETORES DO DOM
+        const startModal = document.getElementById('start-modal');
+        const endModal = document.getElementById('end-modal');
+        const endModalContent = document.getElementById('end-modal-content');
+        const levelModal = document.getElementById('level-modal');
+        const resetConfirmModal = document.getElementById('reset-confirm-modal');
+        const gameContainer = document.getElementById('game-container');
+        
+        const startButton = document.getElementById('start-button');
+        const restartButton = document.getElementById('restart-button');
+        const clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+        const confirmResetBtn = document.getElementById('confirm-reset-btn');
+        
+        const playerNameInput = document.getElementById('player-name-input');
+        const nameValidationMsg = document.getElementById('name-validation-msg');
+        const playerDisplayName = document.getElementById('player-display-name');
+        
+        const scoreEl = document.getElementById('score');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalTimeEl = document.getElementById('final-time');
+        const itemCounterEl = document.getElementById('item-counter');
+        const levelProgressBar = document.getElementById('level-progress-bar');
+        const levelTitleEl = document.getElementById('level-title');
+        const gameTimerEl = document.getElementById('game-timer');
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        
+        const trashItemEl = document.getElementById('trash-item');
+        const trashLabelEl = document.getElementById('trash-label');
+        const feedbackEl = document.getElementById('feedback');
+        const binsContainer = document.getElementById('bins-container');
+        
+        // BOTÕES DE ACESSIBILIDADE
+        const contrastToggle = document.getElementById('contrast-toggle');
+        const speechToggle = document.getElementById('speech-toggle');
+        const speechIcon = document.getElementById('speech-icon');
+        const speechStatus = document.getElementById('speech-status');
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundIcon = document.getElementById('sound-icon');
+        const soundStatus = document.getElementById('sound-status');
+
+        // ESTADO GLOBAL DO JOGO
+        let playerName = "Utilizador";
+        let score = 0;
+        let currentLevelIndex = 0;
+        let currentItemIndex = 0;
+        let levelTrashItems = [];
+        let selectedTrashItem = null;
+
+        let isSoundOn = true;
+        let isSpeechOn = true;
+        let highContrast = false;
+        let audioInitialized = false;
+
+        let timeElapsed = 0.0;
+        let timerInterval = null;
+
+        let correctSynth, incorrectSynth, clickSynth, levelUpSynth, endSynth;
+
+        function fisherYatesShuffle(array) {
+            let shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function initializeAudio() {
+            if (audioInitialized) return;
+            try {
+                correctSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                incorrectSynth = new Tone.Synth({
+                    oscillator: { type: 'square' },
+                    envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.1 }
+                }).toDestination();
+                clickSynth = new Tone.Synth({ envelope: { attack: 0.01, decay: 0.1, release: 0.1 } }).toDestination();
+                levelUpSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                endSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                audioInitialized = true;
+            } catch (e) {
+                console.error("Tone.js init error: ", e);
+            }
+        }
+
+        function playTone(type) {
+            if (!isSoundOn || !audioInitialized) return;
+            const now = Tone.now();
+            try {
+                switch(type) {
+                    case 'correct': correctSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '6n', now); break;
+                    case 'incorrect': incorrectSynth.triggerAttackRelease('A#2', '4n', now); break;
+                    case 'click': clickSynth.triggerAttackRelease('C5', '16n', now); break;
+                    case 'levelup': levelUpSynth.triggerAttackRelease(['G4', 'B4', 'D5', 'G5'], '4n', now); break;
+                    case 'end': endSynth.triggerAttackRelease(['C4', 'E4', 'G4', 'C5'], '2n', now); break;
+                }
+            } catch(e) {}
+        }
+
+        let ptVoice = null;
+        function loadVoices() {
+            if (!('speechSynthesis' in window)) return;
+            const voices = window.speechSynthesis.getVoices();
+            ptVoice = voices.find(v => v.lang === 'pt-PT' || v.lang === 'pt_PT') || 
+                      voices.find(v => v.lang === 'pt-BR' || v.lang === 'pt_BR') || 
+                      voices.find(v => v.lang.startsWith('pt'));
+        }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+            loadVoices();
+        }
+
+        function speakText(text) {
+            if (!isSpeechOn || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'pt-PT';
+            if (ptVoice) utterance.voice = ptVoice;
+            utterance.rate = 1.50; 
+            utterance.pitch = 1.05; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeElapsed = 0.0;
+            gameTimerEl.textContent = "0.0";
+            const startTimestamp = performance.now();
+            timerInterval = setInterval(() => {
+                const currentTimestamp = performance.now();
+                timeElapsed = parseFloat(((currentTimestamp - startTimestamp) / 1000).toFixed(1));
+                gameTimerEl.textContent = timeElapsed.toFixed(1);
+            }, 100);
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        function getLeaderboard() {
+            const rawData = localStorage.getItem('uninter_coleta_leaderboard');
+            return rawData ? JSON.parse(rawData) : [];
+        }
+
+        function saveScoreToLeaderboard(name, finalScore, elapsedTime) {
+            let leaderboard = getLeaderboard();
+            const newRecord = { name: name, score: finalScore, time: elapsedTime, timestamp: Date.now() };
+            leaderboard.push(newRecord);
+            leaderboard.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score; 
+                return a.time - b.time; 
+            });
+            localStorage.setItem('uninter_coleta_leaderboard', JSON.stringify(leaderboard));
+            return newRecord;
+        }
+
+        function renderLeaderboardTable(activeRecord) {
+            const leaderboard = getLeaderboard();
+            leaderboardBody.innerHTML = '';
+            const topFive = leaderboard.slice(0, 5);
+
+            if (topFive.length === 0) {
+                leaderboardBody.innerHTML = `<tr><td colspan="4" class="px-3 py-4 text-center text-gray-400 font-medium">Nenhum registo no placar ainda.</td></tr>`;
+                return;
+            }
+
+            topFive.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                const isCurrentRun = (activeRecord && row.timestamp === activeRecord.timestamp);
+                const bgClass = isCurrentRun ? 'bg-green-100 font-extrabold text-green-900 border-l-4 border-green-600' : 'hover:bg-gray-50 text-gray-700';
+                
+                let positionBadge = `${index + 1}º`;
+                if (index === 0) positionBadge = '🥇';
+                if (index === 1) positionBadge = '🥈';
+                if (index === 2) positionBadge = '🥉';
+
+                tr.className = `${bgClass} border-b border-gray-100 transition-colors`;
+                tr.innerHTML = `
+                    <td class="px-3 py-2 text-center font-bold text-gray-500">${positionBadge}</td>
+                    <td class="px-3 py-2 truncate max-w-[120px]">${row.name}</td>
+                    <td class="px-3 py-2 text-center text-green-600 font-extrabold">${row.score}</td>
+                    <td class="px-3 py-2 text-center text-red-500 font-medium">${row.time.toFixed(1)}s</td>
+                `;
+                leaderboardBody.appendChild(tr);
+            });
+        }
+
+        function setupLevel() {
+            const level = LEVELS[currentLevelIndex];
+            levelTitleEl.textContent = level.name;
+            currentItemIndex = 0;
+            const shuffledPool = fisherYatesShuffle(level.items);
+            levelTrashItems = shuffledPool.slice(0, 5);
+            renderBinsForLevel(level.bins);
+            updateProgress();
+            loadCurrentTrashItem();
+        }
+
+        function renderBinsForLevel(activeBinsKeys) {
+            binsContainer.innerHTML = '';
+            activeBinsKeys.forEach((key, index) => {
+                const binData = ALL_BINS[key];
+                const button = document.createElement('button');
+                button.className = `bin p-4 rounded-2xl shadow-lg flex flex-col items-center justify-between h-40 border-b-8 transition-all active:scale-95 text-white ${binData.class}`;
+                button.dataset.type = binData.type;
+                button.dataset.key = binData.key;
+                button.innerHTML = `
+                    <span class="text-4xl" role="img" aria-label="${binData.name}">${binData.emoji}</span>
+                    <span class="font-bold text-lg leading-tight block">${binData.name}</span>
+                    <span class="text-[10px] bg-black/20 px-2 py-0.5 rounded-full mt-1">Atalho: ${index + 1}</span>
+                `;
+                button.addEventListener('dragover', (e) => { e.preventDefault(); button.classList.add('drag-over'); });
+                button.addEventListener('dragleave', () => { button.classList.remove('drag-over'); });
+                button.addEventListener('drop', (e) => { e.preventDefault(); button.classList.remove('drag-over'); evaluateMatch(binData.type); });
+                button.addEventListener('click', () => {
+                    if (selectedTrashItem) evaluateMatch(binData.type);
+                    else speakText(`Ecoponto de ${binData.name}`);
+                });
+                binsContainer.appendChild(button);
+            });
+        }
+
+        function loadCurrentTrashItem() {
+            if (currentItemIndex >= levelTrashItems.length) { concludeLevel(); return; }
+            const item = levelTrashItems[currentItemIndex];
+            trashItemEl.classList.remove('correct-animation', 'incorrect-animation', 'selected-active');
+            selectedTrashItem = null;
+            trashItemEl.textContent = item.emoji;
+            trashItemEl.dataset.type = item.type;
+            trashLabelEl.textContent = item.name;
+            speakText(`${item.name}. Onde colocar?`);
+        }
+
+        function updateProgress() {
+            scoreEl.textContent = score;
+            const totalItems = levelTrashItems.length;
+            itemCounterEl.textContent = `${Math.min(currentItemIndex + 1, totalItems)} / ${totalItems}`;
+            levelProgressBar.style.width = `${(Math.min(currentItemIndex, totalItems) / totalItems) * 100}%`;
+        }
+
+        function evaluateMatch(droppedBinType) {
+            const correctType = trashItemEl.dataset.type;
+            const item = levelTrashItems[currentItemIndex];
+            trashItemEl.classList.remove('selected-active');
+            selectedTrashItem = null;
+
+            if (droppedBinType === correctType) {
+                playTone('correct');
+                score += 10;
+                showFeedback("Correto! 🎉", "text-green-600 border-green-200");
+                trashItemEl.classList.add('correct-animation');
+                speakText("Correto!");
+            } else {
+                playTone('incorrect');
+                showFeedback("Incorreto! ❌", "text-red-600 border-red-200");
+                trashItemEl.classList.add('incorrect-animation');
+                speakText(`Incorreto. O lugar correto da ${item.name} é no ecoponto de ${ALL_BINS[correctType].name}.`);
+            }
+            updateProgress();
+            setTimeout(() => { currentItemIndex++; updateProgress(); loadCurrentTrashItem(); }, 600);
+        }
+
+        function showFeedback(text, classes) {
+            feedbackEl.textContent = text;
+            feedbackEl.className = `absolute -bottom-6 left-1/2 -translate-x-1/2 text-lg md:text-xl font-extrabold whitespace-nowrap bg-white py-2 px-6 rounded-full shadow-lg border-2 z-10 scale-100 transition-transform duration-200 ${classes}`;
+            setTimeout(() => { feedbackEl.classList.remove('scale-100'); feedbackEl.classList.add('scale-0'); }, 1000);
+        }
+
+        function concludeLevel() {
+            playTone('levelup');
+            if (currentLevelIndex < LEVELS.length - 1) {
+                const currentLevelName = LEVELS[currentLevelIndex].name;
+                currentLevelIndex++;
+                document.getElementById('level-modal-title').textContent = `${currentLevelName} Concluído!`;
+                document.getElementById('level-modal-desc').textContent = `Está pronto para a próxima fase?`;
+                levelModal.classList.remove('hidden');
+                speakText(`Fase concluída! Clique no botão para a próxima etapa.`);
+            } else {
+                concludeGame();
+            }
+        }
+
+        function concludeGame() {
+            stopTimer();
+            playTone('end');
+            finalScoreEl.textContent = score;
+            finalTimeEl.textContent = timeElapsed.toFixed(1);
+            const activeRecord = saveScoreToLeaderboard(playerName, score, timeElapsed);
+            renderLeaderboardTable(activeRecord);
+            endModal.classList.remove('hidden');
+            speakText(`Parabéns, ${playerName}! Completou todo o desafio com ${score} pontos em ${timeElapsed.toFixed(0)} segundos.`);
+        }
+
+        trashItemEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedTrashItem) {
+                selectedTrashItem = null;
+                trashItemEl.classList.remove('selected-active');
+                speakText("Seleção desfeita.");
+            } else {
+                selectedTrashItem = trashItemEl;
+                trashItemEl.classList.add('selected-active');
+                speakText(`${levelTrashItems[currentItemIndex].name} selecionado. Escolha o ecoponto.`);
+            }
+        });
+
+        document.body.addEventListener('click', () => {
+            if (selectedTrashItem) { selectedTrashItem = null; trashItemEl.classList.remove('selected-active'); }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameContainer.classList.contains('hidden') && levelModal.classList.contains('hidden') && endModal.classList.contains('hidden')) {
+                const binIndex = parseInt(e.key) - 1;
+                const levelBins = LEVELS[currentLevelIndex].bins;
+                if (binIndex >= 0 && binIndex < levelBins.length) {
+                    playTone('click');
+                    const targetBinEl = binsContainer.children[binIndex];
+                    if (targetBinEl) {
+                        targetBinEl.classList.add('selected-target');
+                        setTimeout(() => targetBinEl.classList.remove('selected-target'), 200);
+                    }
+                    evaluateMatch(levelBins[binIndex]);
+                }
+            }
+        });
+
+        trashItemEl.addEventListener('dragstart', (e) => {
+            trashItemEl.classList.add('scale-75', 'opacity-50');
+            e.dataTransfer.setData('text/plain', trashItemEl.dataset.type);
+        });
+        trashItemEl.addEventListener('dragend', () => { trashItemEl.classList.remove('scale-75', 'opacity-50'); });
+
+        contrastToggle.addEventListener('click', () => {
+            highContrast = !highContrast;
+            if (highContrast) {
+                document.body.className = "bg-pattern-contrast flex flex-col items-center justify-between min-h-screen p-4 text-yellow-400 bg-black";
+                document.querySelectorAll('.bg-white, .bg-white\\/90').forEach(el => { el.classList.add('bg-black', 'border-2', 'border-white', 'text-white'); el.classList.remove('bg-white', 'bg-white/90'); });
+                contrastToggle.className = "flex items-center gap-1 bg-yellow-400 hover:bg-yellow-500 text-black text-xs font-black py-2 px-3 rounded-lg border-2 border-black transition-colors";
+                speakText("Alto contraste ativado.");
+            } else {
+                document.body.className = "bg-pattern-light flex flex-col items-center justify-between min-h-screen p-4 text-gray-800";
+                document.querySelectorAll('.border-white').forEach(el => { el.classList.add('bg-white/90'); el.classList.remove('bg-black', 'border-2', 'border-white', 'text-white'); });
+                contrastToggle.className = "flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold py-2 px-3 rounded-lg border border-gray-300 transition-colors";
+                speakText("Visual normal restaurado.");
+            }
+        });
+
+        speechToggle.addEventListener('click', () => {
+            isSpeechOn = !isSpeechOn;
+            speechIcon.textContent = isSpeechOn ? "🔊" : "🔇";
+            speechStatus.textContent = isSpeechOn ? "ON" : "OFF";
+            if (isSpeechOn) speakText("Leitura de voz ativa.");
+        });
+
+        soundToggle.addEventListener('click', async () => {
+            isSoundOn = !isSoundOn;
+            soundIcon.textContent = isSoundOn ? "🎵" : "🔇";
+            soundStatus.textContent = isSoundOn ? "ON" : "OFF";
+            if (isSoundOn) {
+                if (!audioInitialized) { await Tone.start(); initializeAudio(); }
+                playTone('click');
+            }
+        });
+
+        restartButton.addEventListener('click', () => {
+            endModal.classList.add('hidden');
+            startModal.classList.remove('hidden');
+            playerNameInput.value = "";
+            nameValidationMsg.classList.add('hidden');
+        });
+
+        clearLeaderboardBtn.addEventListener('click', () => resetConfirmModal.classList.remove('hidden'));
+        cancelResetBtn.addEventListener('click', () => resetConfirmModal.classList.add('hidden'));
+        confirmResetBtn.addEventListener('click', () => {
+            localStorage.removeItem('uninter_coleta_leaderboard');
+            resetConfirmModal.classList.add('hidden');
+            renderLeaderboardTable(null);
+            speakText("Placar limpo com sucesso!");
+        });
+
+        startButton.addEventListener('click', async () => {
+            const rawName = playerNameInput.value.trim();
+            if (rawName.length < 2) {
+                nameValidationMsg.classList.remove('hidden');
+                speakText("Por favor, introduza o seu nome para continuar.");
+                return;
+            }
+            nameValidationMsg.classList.add('hidden');
+            playerName = rawName;
+            playerDisplayName.textContent = playerName;
+
+            if (!audioInitialized) { try { await Tone.start(); initializeAudio(); } catch(e) {} }
+            playTone('click');
+            
+            score = 0; currentLevelIndex = 0;
+            startModal.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            
+            speakText(`Boa sorte, ${playerName}! Nível um: Reciclagem Básica.`);
+            startTimer(); setupLevel();
+        });
+        
+        document.getElementById('level-modal-next').addEventListener('click', () => {
+            levelModal.classList.add('hidden');
+            setupLevel();
+        });
+    </script>
+</body>
+</html>
